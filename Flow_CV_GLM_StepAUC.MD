@@ -8,7 +8,7 @@ First In Polish.... ( send message if you are interested in English version )
 
 Celem jest zbudowanie scoringowego modelu GLM. 
 Dane wejściowe stanowi ramka danych (dataset):
-  - w której jedna kolumna oznaczona jest jako target i przyjmuje wartości ze zbioru $ \{0,1\}$.
+  - w której jedna kolumna oznaczona jest jako target i przyjmuje wartości ze zbioru $$ \{0,1\}$$.
   - pozostałe są cechami kategorycznymi lub liczbowymi, które można będzie wykorzystać w produkcyjnym dzianianiu modelu z możliwością wystąpienia braków danych.
   
 Zakładamy, że brak danych jest taką samą informacją jak inne podane wartości.
