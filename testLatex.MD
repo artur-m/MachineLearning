@@ -6,3 +6,5 @@
 \\ldots 
 moze
 
+$$ a = b $$
+a = b
