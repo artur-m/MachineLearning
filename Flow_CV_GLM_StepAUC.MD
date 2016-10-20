@@ -6,7 +6,7 @@ First In Polish.... ( send message if you are interested in English version )
 
 ## Założenia i Cel
 
-Celem jest zbudowanie scoringowego modelu GLM. 
+Celem jest zbudowanie modelu scoringowego opartego na GLM. 
 Dane wejściowe stanowi ramka danych (dataset):
   - w której jedna kolumna oznaczona jest jako target i przyjmuje wartości ze zbioru $$ \{0,1\}$$.
   - pozostałe są cechami kategorycznymi lub liczbowymi, które można będzie wykorzystać w produkcyjnym dzianianiu modelu z możliwością wystąpienia braków danych.
