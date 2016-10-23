@@ -57,8 +57,10 @@ set.categorization.and.woe.feature <- function(x, f.trans,flag_label = FALSE)
 
 categorize.and.woe.data.frame <- function( data, features, target,min.levels.to.continuous = 6,eps =0.1  )
 {
-  list.dict <- lapply(features,FUN = function(f){print(f) 
-    categorize.and.woe.feature(x = data[,f],y = data[,target],min.levels.to.continuous =min.levels.to.continuous ,eps = eps )} )
+  if( length(eps) == 1 ) eps <- rep(eps, length(features))
+  names(eps) <- features
+  list.dict <- lapply(features,FUN = function(f){
+    categorize.and.woe.feature(x = data[,f],y = data[,target],min.levels.to.continuous =min.levels.to.continuous ,eps = eps[f] )} )
   names(list.dict) <- features
   list.dict
 }
@@ -98,8 +100,10 @@ build.cv.dataset <- function(dataset,features,target,k,seed)
 
 categorize.and.woe.cv <- function( train.cv,features,target,min.levels.to.continuous = 6,eps =0.1  )
 {
-  
+  cv.loop.i <<- 1
   dict.cv <-lapply(train.cv, FUN = function(data){
+    print(cv.loop.i)
+    cv.loop.i <<- cv.loop.i+1
     categorize.and.woe.data.frame(data= data,features = features,target = target, min.levels.to.continuous = min.levels.to.continuous, eps = eps)
   })
   
@@ -122,147 +126,4 @@ set.categorization.and.woe.cv <- function(cv.dataset, cv.trans, features)
 }
 
 
-build.glm.model.and.predict.cv <- function( trans.cv.dataset, features, target,k)
-{
-  formula <-as.formula(paste(target,'~',paste(features,collapse = '+')))
-  
-  formula
-  lapply(1:k, FUN = function(i)
-         {
-    model <- glm(formula,data =  trans.cv.dataset$trans.train.cv[[i]],family = 'binomial')
-    predict.trn <- predict(model,trans.cv.dataset$trans.train.cv[[i]])
-    predict.tst <- predict(model,trans.cv.dataset$trans.test.cv[[i]])
-    list(predict.trn = predict.trn,y.trn =trans.cv.dataset$trans.train.cv[[i]][,target] 
-         ,predict.tst=predict.tst,y.tst = trans.cv.dataset$trans.test.cv[[i]][,target])
-  })
 
-}
-
-
-auc.evaluate <- function(predicted,observed)
-{
-  pred <- ROCR::prediction(predicted,observed)
-  perf <- ROCR::performance(pred,"tpr","fpr")
-  perf <- ROCR::performance(pred,"auc")
-  as.numeric(perf@y.values)
-}
-
-
-auc.evaluate.cv <- function(pred.cv)
-{
-  trn.set <- sapply(pred.cv, FUN = function(pred){
-    auc.evaluate(pred$predict.trn,pred$y.trn)
-  })
-  
-  tst.set <- sapply(pred.cv, FUN = function(pred){
-    auc.evaluate(pred$predict.tst,pred$y.tst)
-  })
-  list(trn.set = trn.set, tst.set = tst.set)
-}
-
-
-step.auc.cv <- function( cv.dataset, features, target, steps, k)
-{
-  selected.features <- c()
-  current.selected.features <- c()
-  avaiable.features <- features
-  formula <- as.formula(paste(target,'~.'))
-  best.auc  <- random.auc.set.cv(k)
-  best.s.auc <- random.auc.set.cv(k)
-  s <- 1
-  while( s < steps)
-  {
-    best.s.auc <- random.auc.set.cv(k)
-    best.s.feature <- -1
-    for( f in avaiable.features)
-    {
-      current.selected.features <- c(selected.features,f)
-      pred.cv <- build.glm.model.and.predict.cv(trans.cv.dataset = cv.dataset
-                                                ,features = current.selected.features
-                                                ,target = target,k = k)
-      
-      current.auc.set <- auc.evaluate.cv(pred.cv)
-      if( test.predict.ability.cv( current.auc.set) )
-      {
-        if( auc.model.cmp.cv(best.s.auc, current.auc.set)  )
-        {
-          best.s.auc = current.auc.set
-          best.s.feature <- f
-        }
-        
-      }
-      
-      
-    }
-    print(best.s.feature)
-    if( auc.model.cmp.cv(best.auc, best.s.auc))
-    {
-      avaiable.features <- avaiable.features[best.s.feature!=avaiable.features]
-      selected.features <- c(selected.features,best.s.feature)
-      s <- s+1
-      
-      print(avaiable.features)
-      print(selected.features)
-      print(best.s.auc)
-      
-    }
-    else
-    {
-      break;
-    }
-
-    
-    
-  }
-  list(selected.features, best.auc)
-}
-
-test.predict.ability.cv <- function( set.auc.cv)
-{
-  if( min( abs(set.auc.cv$trn.set - set.auc.cv$tst.set) ) > 0.1 ) return(FALSE)
-  sd.tst <- sd(set.auc.cv$tst)
-  sd.trn <- sd(set.auc.cv$trn)
-  if( sd.tst > 0.1 || sd.trn > 0.1 ) return(FALSE)
-  if( any( set.auc.cv$tst.set - sd.tst < 0.5 ) || any( set.auc.cv$trn.set - sd.trn < 0.5 ) ) return(FALSE)
-  return(TRUE)
-}
-
-### x < y
-auc.model.cmp.cv <- function( set.auc.cv.x, set.auc.cv.y)
-{
-  mean(set.auc.cv.x$tst.set) < mean(set.auc.cv.y$tst.set)
-}
-
-random.auc.set.cv <- function(k)
-{
-  list( trn.set = rep(0.5,k),tst.set = rep(0.5,k))
-}
-
-best.s.feature <- features[300]
-######################
-# SAMPLE
-
-data <- iris[,1:4]
-data$target <- ifelse(iris$Species =='virginica',1,0)
-data$target <- sample(c(1,0),150,r=T)
-
-features <- names(data)[-5]
-target <- 'target'
-trans.df <- categorize.and.woe.data.frame(data,features,'target',eps = 0.1)
-
-set.categorization.and.woe.data.frame(data = data, features = names(data)[1:2],f.trans = trans.df)
-
-
-####### TUTAJ MIESO 
-
-cv.dataset <- build.cv.dataset(dataset = data,features = features,target = 'target',k = 5 ,seed = 112)
-
-cv.trans <- categorize.and.woe.cv(train.cv = cv.dataset$train.cv,features = features, target = target)
-
-trans.cv.dataset <- set.categorization.and.woe.cv(cv.dataset,cv.trans,features = features)
-
-pred.cv <- build.glm.model.and.predict.cv(trans.cv.dataset = trans.cv.dataset,features = features[1:2],k = 5,target = 'target')
-
-set.auc.tst <- auc.evaluate.cv(pred.cv)
-mean(set.auc.tst)
-sd(set.auc.tst)
