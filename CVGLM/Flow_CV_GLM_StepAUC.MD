@@ -1,8 +1,6 @@
 ### Training Flow with Cross-Validation using GLM with categorization but without regularization 
 
-I try to describe my feeling how training flow should looks like.
-
-First In Polish.... ( send message if you are interested in English version )
+ ( send message if you are interested in English version )
 
 ## Założenia i Cel
 
