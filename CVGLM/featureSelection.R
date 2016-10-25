@@ -59,20 +59,29 @@ step.auc.cv <- function( cv.dataset, features, target, steps, k)
     for( f in avaiable.features)
     {
       current.selected.features <- c(selected.features,f)
-      pred.cv <- build.glm.model.and.predict.cv(trans.cv.dataset = cv.dataset
-                                                ,features = current.selected.features
-                                                ,target = target,k = k)
-      
-      current.auc.set <- auc.evaluate.cv(pred.cv)
-      if( test.predict.ability.cv( current.auc.set) )
-      {
-        if( auc.model.cmp.cv(best.s.auc, current.auc.set)  )
+      tryCatch({
+        pred.cv <- build.glm.model.and.predict.cv(trans.cv.dataset = cv.dataset
+                                                  ,features = current.selected.features
+                                                  ,target = target,k = k)
+        
+        current.auc.set <- auc.evaluate.cv(pred.cv)
+        if( test.predict.ability.cv( current.auc.set) )
         {
-          best.s.auc = current.auc.set
-          best.s.feature <- f
+          if( auc.model.cmp.cv(best.s.auc, current.auc.set)  )
+          {
+            best.s.auc = current.auc.set
+            best.s.feature <- f
+          }
+          
         }
         
-      }
+      },error = function(err){
+        print('ERROR podczas budowy modelu po dodaniu cechy:')
+        print(f)
+        print(current.selected.features)
+        print(err)
+      })
+      
       
       
     }
@@ -124,14 +133,17 @@ random.auc.set.cv <- function(k)
 
 stepAUC.cv.grid.eps <- function( train, features, target, steps, k, grid.eps,seed = 12124)
 {
-  
+  print('Start: build.cv.dataset')
   cv.dataset <- build.cv.dataset(train,features = features,target = target,k = k,seed = seed)
   result.stepAUC.list <- list()
   for( i in 1:nrow(grid.eps))
   {
-    cv.trans <- categorize.and.woe.cv(cv.dataset$train.cv,features,'y',eps = as.numeric(grid.eps[i,]))
+    print(paste('Grid step:',i))
+    print('Start: categorize.and.woe.cv')
+    cv.trans <- categorize.and.woe.cv(cv.dataset$train.cv,features,target,eps = as.numeric(grid.eps[i,]))
+    print('Start: set.categorization.and.woe.cv')
     cv.dataset.trans <- set.categorization.and.woe.cv(cv.dataset,cv.trans, features)
-    
+    print('Start: step.auc.cv')
     resStepAUC <- step.auc.cv(cv.dataset.trans,features,target,steps = steps,k)
     result.stepAUC.list[[i]] <- list()
     result.stepAUC.list[[i]]$trans <- cv.trans 
